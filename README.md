@@ -1,14 +1,5 @@
-# Welcome to your CDK TypeScript project
+An experimental CDK app that creates two EFS file systems, one with "elastic" throughput mode and the other with "
+burstable" throughput mode.
 
-This is a blank project for CDK development with TypeScript.
-
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
-
-## Useful commands
-
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `cdk deploy`      deploy this stack to your default AWS account/region
-* `cdk diff`        compare deployed stack with current state
-* `cdk synth`       emits the synthesized CloudFormation template
+Also creates two Lambdas that benchmark the write IO performance to these two file systems, writing files of different
+sizes.
