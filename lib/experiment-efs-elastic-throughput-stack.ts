@@ -4,9 +4,8 @@ import {Construct} from 'constructs';
 import {FileSystem, PerformanceMode, ThroughputMode} from "aws-cdk-lib/aws-efs";
 import {Vpc} from "aws-cdk-lib/aws-ec2";
 import {NodejsFunction} from "aws-cdk-lib/aws-lambda-nodejs";
+import {FileSystem as LambdaFileSystem} from "aws-cdk-lib/aws-lambda";
 import * as path from "path";
-
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 export class ExperimentEfsElasticThroughputStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -30,8 +29,51 @@ export class ExperimentEfsElasticThroughputStack extends cdk.Stack {
         })
 
         new NodejsFunction(this, 'fn-benchmark-bursting', {
-            entry: path.resolve(__dirname, 'lambda/benchmark/bursting.ts'),
-            timeout: Duration.seconds(60),
+            description: 'Test EFS bursting mode',
+            memorySize: 1024 * 10,
+            entry: path.resolve(__dirname, 'lambda/benchmark.ts'),
+            timeout: Duration.seconds(600),
+            vpc,
+            allowPublicSubnet: true,
+            filesystem: LambdaFileSystem.fromEfsAccessPoint(fsBursting.addAccessPoint('AccessPoint', {
+                // set /export/lambda as the root of the access point
+                path: '/export/lambda',
+                // as /export/lambda does not exist in a new efs filesystem, the efs will create the directory with the following createAcl
+                createAcl: {
+                    ownerUid: '1001',
+                    ownerGid: '1001',
+                    permissions: '750',
+                },
+                // enforce the POSIX identity so lambda function will access with this identity
+                posixUser: {
+                    uid: '1001',
+                    gid: '1001',
+                },
+            }), '/mnt/efs'),
+        })
+
+        new NodejsFunction(this, 'fn-benchmark-elastic', {
+            description: 'Test EFS elastic mode',
+            memorySize: 1024 * 10,
+            entry: path.resolve(__dirname, 'lambda/benchmark.ts'),
+            timeout: Duration.seconds(600),
+            vpc,
+            allowPublicSubnet: true,
+            filesystem: LambdaFileSystem.fromEfsAccessPoint(fsElastic.addAccessPoint('AccessPoint', {
+                // set /export/lambda as the root of the access point
+                path: '/export/lambda',
+                // as /export/lambda does not exist in a new efs filesystem, the efs will create the directory with the following createAcl
+                createAcl: {
+                    ownerUid: '1001',
+                    ownerGid: '1001',
+                    permissions: '750',
+                },
+                // enforce the POSIX identity so lambda function will access with this identity
+                posixUser: {
+                    uid: '1001',
+                    gid: '1001',
+                },
+            }), '/mnt/efs'),
         })
     }
 }
